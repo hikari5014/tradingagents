@@ -2,13 +2,28 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from tradingagents.agents.analysts.turn import take_turn
 from tradingagents.agents.context import get_instrument_context_from_state, get_language_instruction
-from tradingagents.agents.tools import get_indicators, get_stock_data, get_verified_market_snapshot
+from tradingagents.agents.tools import (
+    get_indicators,
+    get_stock_data,
+    get_tw_institutional_trading,
+    get_verified_market_snapshot,
+)
+from tradingagents.dataflows.vendors.finmind import is_taiwan_listed
 
-# The tools this analyst is offered; its tool node is built from the same tuple.
-TOOLS = (
+# The tools this analyst is offered; a Taiwan listing is also offered
+# TAIWAN_TOOLS. Its tool node is built from both.
+BASE_TOOLS = (
     get_stock_data,
     get_indicators,
     get_verified_market_snapshot,
+)
+TAIWAN_TOOLS = (get_tw_institutional_trading,)
+TOOLS = BASE_TOOLS + TAIWAN_TOOLS
+
+TAIWAN_GUIDANCE = (
+    " This is a Taiwan listing: also call get_tw_institutional_trading and report how foreign"
+    " investors, investment trusts and dealers have been trading it, and how its margin and"
+    " short balances have moved, alongside the price action."
 )
 
 
@@ -17,6 +32,8 @@ def create_market_analyst(llm):
     def market_analyst_node(state):
         current_date = state["trade_date"]
         instrument_context = get_instrument_context_from_state(state)
+        taiwan = is_taiwan_listed(state["company_of_interest"])
+        tools = TOOLS if taiwan else BASE_TOOLS
 
         system_message = (
             """You are a trading assistant tasked with analyzing financial markets. Your role is to select the **most relevant indicators** for a given market condition or trading strategy from the following list. The goal is to choose up to **8 indicators** that provide complementary insights without redundancy. Categories and each category's indicators are:
@@ -49,6 +66,7 @@ Before writing the final report, call get_verified_market_snapshot for this tick
 
 Write a very detailed and nuanced report of the trends you observe. Provide specific, actionable insights with supporting evidence to help traders make informed decisions."""
             + """ Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read."""
+            + (TAIWAN_GUIDANCE if taiwan else "")
             + get_language_instruction()
         )
 
@@ -70,11 +88,11 @@ Write a very detailed and nuanced report of the trends you observe. Provide spec
         )
 
         prompt = prompt.partial(system_message=system_message)
-        prompt = prompt.partial(tool_names=", ".join([tool.name for tool in TOOLS]))
+        prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(instrument_context=instrument_context)
 
-        result, report = take_turn(prompt, llm, TOOLS, state["messages"])
+        result, report = take_turn(prompt, llm, tools, state["messages"])
 
         return {
             "messages": [result],

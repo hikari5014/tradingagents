@@ -289,3 +289,48 @@ def get_prediction_markets(
         str: A formatted markdown report of matching prediction markets
     """
     return route_to_vendor("get_prediction_markets", topic, limit, trade_date or None)
+
+
+@tool
+def get_tw_monthly_revenue(
+    symbol: Annotated[str, InjectedState("company_of_interest")],
+    curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
+    months: Annotated[int | None, "Months to show; omit for 13"] = None,
+    trade_date: Annotated[str, InjectedState("trade_date")] = "",
+) -> str:
+    """
+    Retrieve the monthly revenue of the Taiwan-listed company under analysis,
+    with month-over-month and year-over-year change and the year-to-date total.
+    Taiwan companies publish revenue monthly, so this is the most recent sales
+    figure available between quarterly reports.
+
+    Args:
+        curr_date (str): Current date you are trading at, yyyy-mm-dd
+        months (int): Months to show; omit for 13
+
+    Returns:
+        str: A markdown table of monthly revenue
+    """
+    return route_to_vendor("get_tw_monthly_revenue", symbol, as_of(curr_date, trade_date), months)
+
+
+@tool
+def get_tw_institutional_trading(
+    symbol: Annotated[str, InjectedState("company_of_interest")],
+    curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
+    look_back_days: Annotated[int | None, "Calendar days to look back; omit for 30"] = None,
+    trade_date: Annotated[str, InjectedState("trade_date")] = "",
+) -> str:
+    """
+    Retrieve daily net buying and selling of the Taiwan-listed stock under
+    analysis by foreign investors, investment trusts and dealers, with its
+    margin and short balances.
+
+    Args:
+        curr_date (str): Current date you are trading at, yyyy-mm-dd
+        look_back_days (int): Calendar days to look back; omit for 30
+
+    Returns:
+        str: A markdown table of daily institutional flows and margin balances
+    """
+    return route_to_vendor("get_tw_institutional_trading", symbol, as_of(curr_date, trade_date), look_back_days)
