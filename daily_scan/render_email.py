@@ -1,6 +1,7 @@
 """Render a report (JSON written by the editor agent) as a designed HTML email.
 
     python -m daily_scan.render_email report.json > report.html
+    python -m daily_scan.render_email --doc report.json > report_doc.html   # Drive copy
 
 An electronic-newspaper layout on frosted-glass panels: serif headlines, a
 masthead and section rules carry the hierarchy (no emoji), and the dashboard
@@ -28,9 +29,9 @@ GLASS = ("background-color:rgba(255,255,255,.62);border:1px solid rgba(255,255,2
          "border-radius:22px;box-shadow:0 8px 30px rgba(29,58,110,.10),inset 0 1px 0 rgba(255,255,255,.9);")
 GLASS_TINT = ("background-color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.7);"
               "border-radius:16px;")
-SERIF = "'Noto Serif TC','Songti TC','Source Han Serif TC','PMingLiU',Georgia,serif"
-SANS = "'PingFang TC','Noto Sans TC','Microsoft JhengHei','Helvetica Neue',Arial,sans-serif"
-NUM = "'SF Pro Display','Helvetica Neue','Segoe UI',Arial,sans-serif"
+SERIF = "'Songti TC','Noto Serif TC',PMingLiU,serif"
+SANS = "'PingFang TC','Microsoft JhengHei',sans-serif"
+NUM = "'Helvetica Neue',Arial,sans-serif"
 LEVELS = {  # label -> (text colour, tint, meter level 1-5)
     "延續": ("#b4232a", "rgba(212,63,63,.12)", 5), "觀望": ("#9a5b00", "rgba(214,150,30,.14)", 3),
     "可能退燒": ("#1f5fa8", "rgba(31,95,168,.12)", 1),
@@ -156,7 +157,7 @@ def dashboard(r: dict) -> str:
             f'</div><div style="font:700 18px/1.3 {NUM};color:{move_color(g.get("value"))}">{e(g.get("value"))}</div>'
             f'</td></tr></table></td>' for g in r["global"][:4])
         body += (f'<div style="font:700 13px/1 {SANS};letter-spacing:2px;color:{ACCENT};margin:16px 0 6px">'
-                 f'隔夜國際盤</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
+                 f'{e(r.get("global_title") or "隔夜國際盤")}</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
                  f'<tr>{cells}</tr></table>'
                  + (f'<div style="margin-top:10px;font:400 15px/1.7 {SERIF};color:{SOFT}">{e(r["global_focus"])}</div>'
                     if r.get("global_focus") else ""))
@@ -303,14 +304,68 @@ def render(r: dict) -> str:
         f'</td></tr></table></body></html>')
 
 
+def render_doc(r: dict) -> str:
+    """Plain semantic HTML for the Drive copy: Google Docs drops the email styling anyway."""
+    out = [f"<h1>{e(r.get('title'))}</h1>", f"<h2>{e(r.get('headline'))}</h2>"]
+    out.append("<ol>" + "".join(f"<li>{e(s)}</li>" for s in r.get("summary") or []) + "</ol>")
+    m = r.get("market") or {}
+    if m:
+        out.append(f"<p><b>加權指數</b> {e(m.get('index'))}（{e(m.get('index_change'))}，{e(m.get('index_pct'))}）"
+                   f"｜<b>漲跌家數</b> {e(m.get('up'))} : {e(m.get('down'))}"
+                   f"｜<b>成交金額</b> {e(m.get('value'))}（均量 {e(m.get('value_vs_avg'))}）</p>")
+    if r.get("global"):
+        out.append(f"<p><b>{e(r.get('global_title') or '隔夜國際盤')}</b>："
+                   + "、".join(f"{e(g.get('label'))} {e(g.get('value'))}" for g in r["global"]) + "</p>")
+    if r.get("global_focus"):
+        out.append(f"<p>{e(r['global_focus'])}</p>")
+    flows = r.get("flows") or {}
+    if flows:
+        out.append("<p><b>資金流向</b>：流入 " + "、".join(f"{e(x.get('industry'))} {e(x.get('change'))}" for x in flows.get("in") or [])
+                   + "；流出 " + "、".join(f"{e(x.get('industry'))} {e(x.get('change'))}" for x in flows.get("out") or []) + "</p>")
+    if r.get("themes"):
+        out.append("<h2>熱門題材</h2>")
+        for t in r["themes"]:
+            out.append(f"<h3>{e(t.get('name'))}【{e(t.get('forecast'))}｜熱度 {e(t.get('heat', ''))}】</h3><p>"
+                       + "、".join(f"{e(s.get('code'))} {e(s.get('name'))} {e(s.get('chg'))}" for s in t.get("stocks") or [])
+                       + f"</p><p><b>為什麼熱</b>：{e(t.get('why'))}<br><b>法人態度</b>：{e(t.get('institutions'))}"
+                       f"<br><b>熱度預估</b>：{e(t.get('reason'))}</p>")
+    if r.get("cooling"):
+        out.append("<h3>退燒觀察</h3><ul>" + "".join(f"<li><b>{e(c.get('name'))}</b>：{e(c.get('note'))}</li>"
+                                               for c in r["cooling"]) + "</ul>")
+    if r.get("radar"):
+        out.append("<h2>潛力股雷達</h2><ul>" + "".join(f"<li><b>{e(x.get('code'))} {e(x.get('name'))}</b>：{e(x.get('signal'))}</li>"
+                                                for x in r["radar"]) + "</ul>")
+    for d in r.get("deep_dives") or []:
+        out.append(f"<h2>{e(d.get('code'))} {e(d.get('name'))}【研究優先度 {e(d.get('priority'))}】</h2>"
+                   f"<p>{e(d.get('market'))}・{e(d.get('industry'))}・收盤 {e(d.get('close'))}</p>"
+                   f"<p><b>{e(d.get('highlight'))}</b></p>"
+                   + "".join(f"<p><b>{label}</b>：{e(d.get(key))}</p>" for label, key in (
+                       ("基本面", "fundamentals"), ("籌碼", "chips"), ("技術面", "technical"), ("看多", "bull"),
+                       ("看空", "bear"), ("主要風險", "risks"), ("看錯訊號", "wrong_if")) if d.get(key))
+                   + "<ul>" + "".join(f"<li>{e(w)}</li>" for w in d.get("watch") or []) + "</ul>")
+    t = r.get("track") or {}
+    if t.get("rows"):
+        out.append("<h2>過去潛力股追蹤</h2><table border='1' cellpadding='6'><tr><th>股票</th><th>選出日</th>"
+                   "<th>當時價</th><th>最新價</th><th>報酬</th></tr>"
+                   + "".join(f"<tr><td>{e(x.get('code'))} {e(x.get('name', ''))}</td><td>{e(x.get('picked'))}</td>"
+                             f"<td>{e(x.get('then'))}</td><td>{e(x.get('now'))}</td><td>{e(x.get('ret'))}</td></tr>"
+                             for x in t["rows"]) + f"</table><p>{e(t.get('comment'))}</p>")
+    if r.get("warnings"):
+        out.append("<h3>編輯附註</h3><ul>" + "".join(f"<li>{e(w)}</li>" for w in r["warnings"]) + "</ul>")
+    out.append("<p>本報由 AI 研究團隊整理公開資料自動產生，僅供資訊參考，不構成投資建議。</p>")
+    return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"></head><body>{"".join(out)}</body></html>'
+
+
 def main() -> None:
-    path = sys.argv[1] if len(sys.argv) > 1 else "-"
+    args = [a for a in sys.argv[1:] if a != "--doc"]
+    doc = "--doc" in sys.argv[1:]
+    path = args[0] if args else "-"
     if path == "-":
         data = json.load(sys.stdin)
     else:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
-    sys.stdout.write(render(data))
+    sys.stdout.write(render_doc(data) if doc else render(data))
 
 
 if __name__ == "__main__":

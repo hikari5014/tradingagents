@@ -21,13 +21,15 @@ A 熱度分析師、B 新聞與國際分析師、C 籌碼分析師、D 潛力股
 指示包含：股票代號與名稱、潛力股獵人給的訊號、今天日期、「先讀 daily_scan/AGENTS.md 的 F 段落和 daily_scan/DRIVE.md」。
 
 ## 4. 整合成總報告
-等所有 Agent 回覆後，整合成 `out/report.json`（格式如下），各 Agent 意見不一致時寫出分歧。然後：
+等所有 Agent 回覆後，整合成 `out/report.json`（格式如下；`links.drive` 固定填 `https://drive.google.com/drive/folders/17zjLfUnspfbT3pbOA9nk9elyfeo88kMH`），各 Agent 意見不一致時寫出分歧。然後：
 ```bash
 python -m daily_scan.render_email out/report.json > out/report.html
+python -m daily_scan.render_email --doc out/report.json > out/report_doc.html
 ```
+`report.html` 是寄信用的精美版；`report_doc.html` 是存 Drive 用的簡化版（Google 文件會去掉信件樣式，簡化版比較好讀也比較短）。
 
 ## 5. 寄送與保存（只寄這一封，各 Agent 不寄信）
-1. 存 `out/report.html` 到 00 資料夾（`YYYY-MM-DD_早盤_總報告`，`text/html`），把連結寫回 `links.drive` 後重新渲染。
+1. 存 `out/report_doc.html` 到 00 資料夾（`YYYY-MM-DD_早盤_總報告`，`text/html`）。
 2. 存今天的 5 檔到 04 資料夾（`YYYY-MM-DD_潛力股`，CSV 格式，欄位見 DRIVE.md；當時收盤用資料包的收盤價）。
 3. Gmail `send_message`：寄給 hikari5014@gmail.com，主旨用 `title`，`htmlBody` 放 `out/report.html` 全文，`body` 放 3 行純文字摘要。
 4. 回覆最後列出：信件 ID、Drive 上所有新檔案連結、任何失敗步驟（照實寫，不要宣稱成功）。
@@ -50,6 +52,7 @@ python -m daily_scan.render_email out/report.json > out/report.html
              "up": "907", "down": "838", "value": "8,734 億", "value_vs_avg": "0.86 倍"},
   "global": [{"label": "費城半導體", "value": "+1.2%"}, {"label": "那斯達克", "value": "+0.4%"},
              {"label": "台積電 ADR", "value": "-0.8%"}, {"label": "美元/台幣", "value": "32.1"}],
+  "global_title": "隔夜國際盤（晚間快報可寫「美股盤中」）",
   "global_focus": "今日焦點一段話",
   "themes": [{"name": "題材", "stocks": [{"code": "2408", "name": "南亞科", "chg": "+4.2%"}],
               "why": "為什麼熱", "institutions": "法人態度", "forecast": "延續|觀望|可能退燒", "reason": "預估理由",

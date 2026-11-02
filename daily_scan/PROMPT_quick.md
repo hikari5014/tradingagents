@@ -17,7 +17,7 @@ A 熱度分析師、B 新聞與國際分析師、C 籌碼分析師、D 潛力股
 等 4 個都回覆後再繼續。某個 Agent 失敗就在報告「提醒」寫明，不要自己編內容補上。
 
 ## 3. 整合成總報告
-把四份成果整合成一份 JSON 存到 `out/report.json`（欄位見 `daily_scan/PROMPT_full.md` 的「報告 JSON 格式」；快報使用 `themes`、`cooling`、`flows`、`radar`，不用 `global`、`deep_dives`、`track`）：
+把四份成果整合成一份 JSON（`links.drive` 固定填 `https://drive.google.com/drive/folders/17zjLfUnspfbT3pbOA9nk9elyfeo88kMH`） 存到 `out/report.json`（欄位見 `daily_scan/PROMPT_full.md` 的「報告 JSON 格式」；快報使用 `themes`、`cooling`、`flows`、`radar`；晚間快報可加 `global`（`global_title` 寫「美股盤中」）；不用 `deep_dives`、`track`）：
 - `session`：「收盤快報」或「晚間快報」；`title`：`台股熱度快報 YYYY-MM-DD 收盤`（或晚間）
 - `headline` 一句話總結盤勢；`summary` 3 點
 - `market` 用資料包大盤數字
@@ -27,9 +27,11 @@ A 熱度分析師、B 新聞與國際分析師、C 籌碼分析師、D 潛力股
 然後：
 ```bash
 python -m daily_scan.render_email out/report.json > out/report.html
+python -m daily_scan.render_email --doc out/report.json > out/report_doc.html
 ```
+`report.html` 是寄信用的精美版；`report_doc.html` 是存 Drive 用的簡化版（Google 文件會去掉信件樣式，簡化版比較好讀也比較短）。
 
 ## 4. 寄送與保存（只寄這一封，各 Agent 不寄信）
-1. 存 `out/report.html` 到 00 資料夾（`YYYY-MM-DD_時段_總報告`，`text/html`），取得連結，寫回 report.json 的 `links.drive` 後重新渲染一次。
+1. 存 `out/report_doc.html` 到 00 資料夾（`YYYY-MM-DD_時段_總報告`，`text/html`）。
 2. Gmail `send_message`：寄給 hikari5014@gmail.com，主旨用 `title`，`htmlBody` 放 `out/report.html` 全文，`body` 放 3 行純文字摘要。
 3. 回覆最後列出：信件 ID、Drive 上所有新檔案連結、任何失敗步驟（照實寫，不要宣稱成功）。
