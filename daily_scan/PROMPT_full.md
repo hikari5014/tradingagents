@@ -35,6 +35,9 @@ python -m daily_scan.render_email out/report.json > out/report.html
 ## 報告 JSON 格式
 
 所有欄位都是文字；漲跌一律帶正負號（例如 `+4.2%`、`-0.8%`），版型會自動上色（紅漲綠跌）。沒有內容的欄位直接省略。
+**任何欄位都不要放 emoji**，版型用字級與字型做層次。
+- `heat`（選填，1～5）：題材熱度，畫成熱度條；省略時依 `forecast` 自動決定。
+- `image` / `image_credit`（選填）：只能用**明確允許免費再使用**的圖片，網址必須是 `https://` 開頭，例如 Wikimedia Commons、Unsplash、Pexels、政府開放資料、公司官方新聞稿附圖；`image_credit` 寫來源與授權（例如「Wikimedia Commons（CC BY-SA）」）。新聞媒體的照片有版權，不要使用。找不到合適的圖就省略，不要勉強。
 
 ```json
 {
@@ -49,7 +52,8 @@ python -m daily_scan.render_email out/report.json > out/report.html
              {"label": "台積電 ADR", "value": "-0.8%"}, {"label": "美元/台幣", "value": "32.1"}],
   "global_focus": "今日焦點一段話",
   "themes": [{"name": "題材", "stocks": [{"code": "2408", "name": "南亞科", "chg": "+4.2%"}],
-              "why": "為什麼熱", "institutions": "法人態度", "forecast": "延續|觀望|可能退燒", "reason": "預估理由"}],
+              "why": "為什麼熱", "institutions": "法人態度", "forecast": "延續|觀望|可能退燒", "reason": "預估理由",
+              "heat": "4", "image": "https://upload.wikimedia.org/...", "image_credit": "Wikimedia Commons（CC BY-SA）"}],
   "cooling": [{"name": "族群", "note": "說明"}],
   "flows": {"in": [{"industry": "產業", "change": "+61%"}], "out": [{"industry": "產業", "change": "-43%"}]},
   "radar": [{"code": "3227", "name": "原相", "signal": "訊號說明"}],
