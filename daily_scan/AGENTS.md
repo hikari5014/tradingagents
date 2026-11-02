@@ -5,6 +5,9 @@
 - 只做研究，不給買賣建議或目標價。
 - 用繁體中文、白話，專有名詞要加括號解釋；不要使用 emoji。
 - 先讀 `daily_scan/DRIVE.md`，依規則把成果存到 Drive，並在回覆最後附上存檔連結。
+  Drive 工具需要先載入：呼叫 ToolSearch，query 填
+  `select:mcp__Google_Drive__create_file,mcp__Google_Drive__search_files,mcp__Google_Drive__read_file_content`；
+  上網搜尋則載入 `select:WebSearch`。
   若你沒有 Google Drive 工具，就把完整成果放在回覆裡，由總編輯代存。
 - 回覆給總編輯時，先放「重點摘要」（10 行內），再放完整內容。
 
