@@ -1,4 +1,4 @@
-"""Portfolio-style email design (demo): the same report JSON as render_email.
+"""The email design: portfolio style, from the same report JSON as render_email.
 
     python -m daily_scan.render_email_portfolio report.json > report.html
 
@@ -6,6 +6,9 @@ Dotted-grid backdrop, an oversized black display masthead with a pill letter,
 small letter-spaced labels, white rounded cards with soft shadows, black pill
 buttons and one indigo accent. Built from tables with inline styles so Gmail
 keeps it; the dot grid and shadows simply drop out where a client ignores them.
+Every size is phone-safe without <style>; the one media query only enlarges the
+layout on wide screens, so the masthead survives a client that strips it.
+render_email keeps the earlier frosted-glass design and the plain Drive copy (--doc).
 Taiwan colours: red is up, green is down.
 """
 
@@ -79,8 +82,8 @@ def section_title(title: str, english: str, more: str = "") -> str:
 
 
 def wrap_card(inner: str, pad: str = "30px 30px") -> str:
-    return (f'<tr><td class="card-out" style="padding:12px 16px"><table role="presentation" width="100%" cellpadding="0" '
-            f'cellspacing="0" style="{CARD}"><tr><td class="card-pad" style="padding:{pad}">{inner}</td></tr></table></td></tr>')
+    return (f'<tr><td class="card-out" style="padding:8px 6px"><table role="presentation" width="100%" cellpadding="0" '
+            f'cellspacing="0" style="{CARD}"><tr><td class="card-pad" style="padding:22px 16px">{inner}</td></tr></table></td></tr>')
 
 
 def masthead(r: dict) -> str:
@@ -88,8 +91,10 @@ def masthead(r: dict) -> str:
     side = "".join(f'<div style="font:500 12px/1.75 {SANS};letter-spacing:2px;color:{GREY}">{w}</div>'
                    for w in ("HEAT", "FLOWS", "RADAR", "TRACK"))
     # The pill stands in for the "o", as in the reference's masthead.
-    pill_o = ('<span class="pill-o" style="display:inline-block;width:78px;height:30px;border:13px solid #0d0f14;'
-              'border-radius:999px;vertical-align:-2px;margin:0 3px"></span>')
+    # Sized for a phone by default; the wide-screen rule in render() only enlarges it, so a
+    # client that drops <style> still shows the whole masthead.
+    pill_o = ('<span class="pill-o" style="display:inline-block;width:50px;height:19px;border:9px solid #0d0f14;'
+              'border-radius:999px;vertical-align:-1px;margin:0 2px"></span>')
     return (
         f'<tr><td style="padding:26px 22px 4px"><table role="presentation" width="100%"><tr>'
         f'<td valign="top"><table role="presentation"><tr><td valign="middle" style="padding-right:14px">'
@@ -98,10 +103,11 @@ def masthead(r: dict) -> str:
         f'<td align="right" valign="top" style="font:800 24px/1 {DISPLAY};color:{BLACK}">'
         f'{EDITION_NO.get(session, "01")} / 03</td></tr></table></td></tr>'
         f'<tr><td style="padding:18px 22px 6px"><table role="presentation" width="100%"><tr>'
-        f'<td class="mast" valign="bottom" style="font:900 86px/0.9 {DISPLAY};color:{BLACK};letter-spacing:-4px;'
-        f'white-space:nowrap">St{pill_o}cks<span style="font:400 40px/1 {SANS};color:{INDIGO};'
-        f'vertical-align:top;letter-spacing:0;margin-left:4px">&#10022;</span></td>'
-        f'<td class="side" valign="bottom" width="92" style="border-left:1px solid #cfd3db;padding-left:12px">{side}</td>'
+        f'<td class="mast" valign="bottom" style="font:900 56px/0.95 {DISPLAY};color:{BLACK};letter-spacing:-2.5px;'
+        f'white-space:nowrap">St{pill_o}cks<span class="spark" style="font:400 28px/1 {SANS};color:{INDIGO};'
+        f'vertical-align:top;letter-spacing:0;margin-left:3px">&#10022;</span></td>'
+        f'<td class="side" valign="bottom" width="92" style="display:none;border-left:1px solid #cfd3db;'
+        f'padding-left:12px">{side}</td>'
         f'</tr></table></td></tr>')
 
 
@@ -120,8 +126,8 @@ def hero(r: dict) -> str:
         (m.get("value"), "成交金額", f'均量 {m.get("value_vs_avg", "")}', GREY),
     ]
     stat_cells = "".join(
-        f'<td class="stat-td" width="33%" valign="top" style="padding:0 10px;{"border-left:1px solid " + LINE + ";" if i else ""}">'
-        f'<div class="stat" style="font:800 22px/1.2 {DISPLAY};color:{BLACK};white-space:nowrap">{e(big)}</div>'
+        f'<td class="stat-td" width="33%" valign="top" style="padding:0 5px;{"border-left:1px solid " + LINE + ";" if i else ""}">'
+        f'<div class="stat" style="font:800 17px/1.25 {DISPLAY};color:{BLACK}">{e(big)}</div>'
         f'<div style="font:500 12px/1.5 {SANS};color:{GREY};margin-top:4px">{e(small)}</div>'
         f'<div style="font:700 12px/1.4 {SANS};color:{color}">{e(note)}</div></td>'
         for i, (big, small, note, color) in enumerate(stats))
@@ -329,7 +335,7 @@ def footer(r: dict) -> str:
         f'<td style="padding:10px 6px 10px 10px"><span style="display:inline-block;width:34px;height:34px;'
         f'line-height:34px;border-radius:34px;background-color:{BLACK};color:#fff;text-align:center;'
         f'font:800 12px/34px {DISPLAY}">AI</span></td>'
-        f'<td class="foot-pill" style="padding:10px 22px 10px 6px;font:800 15px/1 {DISPLAY};color:{BLACK};white-space:nowrap">'
+        f'<td class="foot-pill" style="padding:10px 14px 10px 6px;font:800 12px/1 {DISPLAY};color:{BLACK}">'
         f'Taiwan Equity AI Desk&nbsp;&nbsp;·&nbsp;&nbsp;{e(r.get("session"))}</td></tr></table></td></tr>'
         f'<tr><td style="padding:16px 30px 34px;font:400 12px/1.8 {SANS};color:{GREY}">'
         + (f'{label("Editor notes", INK, 10)}{notes}<div style="height:10px"></div>' if notes else "")
@@ -342,11 +348,13 @@ def render(r: dict) -> str:
     return (f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
             f'<meta name="color-scheme" content="light only"><title>{e(r.get("title"))}</title>'
-            f'<style>@media only screen and (max-width:480px){{.mast{{font-size:54px!important;letter-spacing:-2px!important}}'
-            f'.pill-o{{width:46px!important;height:18px!important;border-width:8px!important}}'
-            f'.side{{display:none!important}}.stat{{font-size:16px!important;white-space:normal!important}}.stat-td{{padding:0 5px!important}}'
-            f'.card-pad{{padding:22px 16px!important}}.card-out{{padding:8px 6px!important}}'
-            f'.foot-pill{{font-size:12px!important;padding-right:14px!important}}}}</style></head>'
+            f'<style>@media only screen and (min-width:620px){{'
+            f'.mast{{font-size:86px!important;letter-spacing:-4px!important}}'
+            f'.pill-o{{width:78px!important;height:30px!important;border-width:13px!important}}'
+            f'.spark{{font-size:40px!important}}.side{{display:table-cell!important}}'
+            f'.stat{{font-size:22px!important}}.stat-td{{padding:0 10px!important}}'
+            f'.card-pad{{padding:28px 30px!important}}.card-out{{padding:12px 16px!important}}'
+            f'.foot-pill{{font-size:15px!important;padding-right:22px!important;white-space:nowrap!important}}}}</style></head>'
             f'<body style="margin:0;padding:0;{PAGE}"><table role="presentation" width="100%" cellpadding="0" '
             f'cellspacing="0" style="{PAGE}"><tr><td align="center" style="padding:10px 4px">'
             f'<table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px;'

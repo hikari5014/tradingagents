@@ -23,7 +23,7 @@ A 熱度分析師、B 新聞與國際分析師、C 籌碼分析師、D 潛力股
 ## 4. 整合成總報告
 等所有 Agent 回覆後，整合成 `out/report.json`（格式如下；`links.drive` 固定填 `https://drive.google.com/drive/folders/17zjLfUnspfbT3pbOA9nk9elyfeo88kMH`），各 Agent 意見不一致時寫出分歧。然後：
 ```bash
-python -m daily_scan.render_email out/report.json > out/report.html
+python -m daily_scan.render_email_portfolio out/report.json > out/report.html
 python -m daily_scan.render_email --doc out/report.json > out/report_doc.html
 ```
 `report.html` 是寄信用的精美版；`report_doc.html` 是存 Drive 用的簡化版（Google 文件會去掉信件樣式，簡化版比較好讀也比較短）。
