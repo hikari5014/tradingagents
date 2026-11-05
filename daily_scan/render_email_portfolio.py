@@ -15,6 +15,7 @@ Taiwan colours: red is up, green is down.
 from __future__ import annotations
 
 import json
+import re
 import sys
 
 from daily_scan.render_email import LEVELS, e, move_color, num
@@ -342,13 +343,46 @@ def footer(r: dict) -> str:
         + '本報由 AI 研究團隊整理公開資料自動產生，僅供資訊參考，不構成投資建議。紅色為上漲、綠色為下跌。</td></tr>')
 
 
+STYLE_ATTR = re.compile(r'<[a-z]+\b[^>]*>')
+
+
+def compact(body: str) -> tuple[str, str]:
+    """Move inline styles that repeat into short classes, roughly halving the email.
+
+    The email is pasted whole into the mail tool and Gmail clips messages over ~102KB,
+    so size matters. Tags that already carry a class (the wide-screen overrides) and
+    styles with gradients keep their inline style, so the layout and the masthead read
+    the same in clients that keep <style> (Gmail, Apple Mail, Outlook.com).
+    """
+    tags = STYLE_ATTR.findall(body)
+    counts: dict[str, int] = {}
+    for t in tags:
+        m = re.search(r' style="([^"]*)"', t)
+        if m and ' class="' not in t:
+            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+    names = {s: f"z{i}" for i, s in enumerate(
+        s for s, n in sorted(counts.items(), key=lambda kv: -kv[1] * len(kv[0]))
+        if n >= 2 and len(s) >= 25 and "gradient" not in s and "url(" not in s)}
+
+    def swap(m: re.Match) -> str:
+        t = m.group(0)
+        if ' class="' in t:
+            return t
+        return re.sub(r' style="([^"]*)"',
+                      lambda s: f' class="{names[s.group(1)]}"' if s.group(1) in names else s.group(0), t)
+
+    css = "".join(f".{n}{{{s}}}" for s, n in names.items())
+    return STYLE_ATTR.sub(swap, body), css
+
+
 def render(r: dict) -> str:
     body = (masthead(r) + hero(r) + flows_card(r) + themes_card(r) + radar_card(r) + deep_card(r)
             + track_card(r) + footer(r))
+    body, css = compact(body)
     return (f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
             f'<meta name="color-scheme" content="light only"><title>{e(r.get("title"))}</title>'
-            f'<style>@media only screen and (min-width:620px){{'
+            f'<style>{css}@media only screen and (min-width:620px){{'
             f'.mast{{font-size:86px!important;letter-spacing:-4px!important}}'
             f'.pill-o{{width:78px!important;height:30px!important;border-width:13px!important}}'
             f'.spark{{font-size:40px!important}}.side{{display:table-cell!important}}'
