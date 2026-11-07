@@ -11,6 +11,7 @@ import hashlib
 import html
 import os
 import re
+import sys
 import time
 from datetime import UTC, date, datetime, timedelta
 
@@ -18,7 +19,8 @@ import requests
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (daily_scan; research)"}
 TIMEOUT = 30
-_EXCHANGE_PAUSE = 2.5   # seconds between exchange requests; bursts get an IP blocked
+_EXCHANGE_PAUSE = 6.0   # seconds between exchange requests; bursts get an IP blocked
+_BLOCK_BACKOFF = 90     # seconds to wait when an exchange answers with a non-JSON page (a temporary block)
 _last_exchange_call = 0.0
 
 # Common stocks have a four-digit code; ETFs, warrants and bonds do not.
@@ -64,10 +66,16 @@ def _get(url: str, *, exchange: bool = False, tries: int = 6, **params):
                 with open(cache, "w", encoding="utf-8") as f:
                     f.write(response.text)
             return response
-        except (requests.RequestException, ValueError):
+        except (requests.RequestException, ValueError) as exc:
             if attempt == tries - 1:
                 raise
-            time.sleep(3 * (attempt + 1))
+            # A non-JSON answer from an exchange is its throttle page: the block lasts
+            # a minute or more, so a short retry only burns attempts.
+            blocked = exchange and isinstance(exc, (ValueError, requests.Timeout))
+            delay = _BLOCK_BACKOFF * (attempt + 1) if blocked else 3 * (attempt + 1)
+            print(f"[scan] {url.split('/')[2]} {params.get('date', '')}: {type(exc).__name__}, "
+                  f"retry {attempt + 2}/{tries} in {delay}s", file=sys.stderr, flush=True)
+            time.sleep(delay)
 
 
 def _num(text) -> float:
